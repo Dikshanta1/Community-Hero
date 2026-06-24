@@ -18,5 +18,6 @@ This platform simulates a sophisticated multi-agent negotiation environment powe
 
 ## 🛠 Technologies Used
 * **Frontend:** HTML5, Tailwind CSS, JavaScript (ES6+)
+* **Backend & Database:** Firebase Firestore (Real-time data synchronization)
 * **AI Engine:** Google Gemini 3.1 Pro Preview
 * **Deployment:** Google AI Studio
