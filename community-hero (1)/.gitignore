@@ -1,0 +1,10 @@
+# Credentials
+serviceAccountKey.json
+.env
+
+# Dependencies
+node_modules/
+dist/
+
+# System Files
+.DS_Store
