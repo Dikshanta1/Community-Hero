@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Community Hero - Smart City Command Center</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            neon: {
+              green: '#39ff14',
+              red: '#ff073a',
+              blue: '#0ff'
+            }
+          },
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&family=JetBrains+Mono:wght@400;700&display=swap');
+    body { background-color: #050505; color: #fff; }
+    .glass {
+      background: rgba(15, 20, 25, 0.7);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .neon-text { text-shadow: 0 0 10px rgba(57, 255, 20, 0.5); }
+    .neon-text-blue { text-shadow: 0 0 10px #0ff; }
+    .neon-text-red { text-shadow: 0 0 10px #ff073a; }
+    .pulse-red { animation: pulse-red 2s infinite; }
+    @keyframes pulse-red {
+      0% { box-shadow: 0 0 10px #ff073a, inset 0 0 5px #ff073a; border-color: #ff073a; }
+      50% { box-shadow: 0 0 20px #ff073a, inset 0 0 10px #ff073a; border-color: rgba(255, 7, 58, 0.8); }
+      100% { box-shadow: 0 0 10px #ff073a, inset 0 0 5px #ff073a; border-color: #ff073a; }
+    }
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); }
+    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.4); }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col font-sans">
+  
+  <!-- Header -->
+  <header class="sticky top-0 z-50 glass border-b border-white/10 px-6 py-4 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <div class="h-8 w-8 rounded-full bg-neon-blue/20 border border-neon-blue flex items-center justify-center shadow-[0_0_10px_#0ff]">
+        <svg class="w-5 h-5 text-neon-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+      </div>
+      <h1 class="text-xl font-black uppercase tracking-widest text-neon-blue neon-text-blue hidden sm:block">Community Hero</h1>
+    </div>
+    <div class="flex items-center gap-4 sm:gap-6">
+      <div class="flex flex-col text-right hidden sm:flex">
+        <span class="text-[10px] text-gray-400 font-mono uppercase tracking-wider">Hero Score</span>
+        <span class="text-neon-green font-black text-lg neon-text" id="hero-score">850 pts</span>
+      </div>
+      <button id="open-modal-btn" class="bg-neon-green/10 border border-neon-green text-neon-green font-bold uppercase tracking-wider text-xs sm:text-sm px-4 sm:px-6 py-2 rounded shadow-[0_0_15px_#39ff14] hover:bg-neon-green/30 transition-all flex items-center gap-2">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+        Report Hazard
+      </button>
+    </div>
+  </header>
+
+  <!-- Analytics Row -->
+  <section class="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 p-4 sm:p-6 pb-0">
+    <div class="glass p-5 rounded-xl flex flex-col relative overflow-hidden">
+      <div class="absolute -right-4 -top-4 w-16 h-16 bg-white/5 rounded-full blur-xl"></div>
+      <span class="text-[10px] sm:text-xs text-gray-400 font-mono uppercase">Total Verified Reports</span>
+      <span class="text-2xl sm:text-3xl font-black mt-2 text-white" id="stat-reports">0</span>
+    </div>
+    <div class="glass p-5 rounded-xl flex flex-col relative overflow-hidden">
+      <div class="absolute -right-4 -top-4 w-16 h-16 bg-neon-green/10 rounded-full blur-xl"></div>
+      <span class="text-[10px] sm:text-xs text-gray-400 font-mono uppercase">Tax Money Saved</span>
+      <span class="text-2xl sm:text-3xl font-black mt-2 text-neon-green neon-text" id="stat-money">$0</span>
+    </div>
+    <div class="glass p-5 rounded-xl flex flex-col relative overflow-hidden">
+      <div class="absolute -right-4 -top-4 w-16 h-16 bg-neon-blue/10 rounded-full blur-xl"></div>
+      <span class="text-[10px] sm:text-xs text-gray-400 font-mono uppercase">Active AI Agents</span>
+      <span class="text-2xl sm:text-3xl font-black mt-2 text-neon-blue neon-text-blue flex items-center gap-2">
+        3 <span class="text-xs font-mono bg-neon-blue/20 px-2 py-0.5 rounded border border-neon-blue/50">ONLINE</span>
+      </span>
+    </div>
+  </section>
+
+  <!-- Main Grid -->
+  <main class="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 p-4 sm:p-6 h-full">
+    <!-- Map Container -->
+    <div class="lg:col-span-5 h-[400px] lg:h-[650px] glass rounded-xl border border-white/10 overflow-hidden relative">
+      <div id="map" class="w-full h-full"></div>
+      <div class="absolute top-4 left-4 z-[400] glass px-3 py-1.5 rounded-lg text-[10px] sm:text-xs font-mono text-white border border-white/20 shadow-lg flex items-center gap-2">
+        <span class="w-2 h-2 rounded-full bg-neon-green animate-pulse"></span>
+        LIVE TRACKING ACTIVATED
+      </div>
+    </div>
+
+    <!-- Kanban Board -->
+    <div class="lg:col-span-7 glass rounded-xl border border-white/10 p-4 sm:p-6 flex flex-col h-[500px] lg:h-[650px]">
+      <h2 class="text-sm sm:text-base font-black uppercase tracking-wider mb-4 sm:mb-6 flex items-center gap-2 text-white">
+        <span class="h-2 w-2 bg-neon-blue rounded-full shadow-[0_0_8px_#0ff]"></span>
+        Live Dispatch Operations
+      </h2>
+      
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 flex-1 overflow-hidden">
+        
+        <!-- Column 1 -->
+        <div class="flex flex-col h-full bg-black/40 rounded-lg border border-white/5 p-3">
+          <div class="text-[10px] font-mono text-gray-400 uppercase border-b border-white/10 pb-2 mb-3">In AI Verification</div>
+          <div id="col-verification" class="flex-1 overflow-y-auto space-y-3 pr-1"></div>
+        </div>
+
+        <!-- Column 2 -->
+        <div class="flex flex-col h-full bg-black/40 rounded-lg border border-white/5 p-3">
+          <div class="text-[10px] font-mono text-neon-blue uppercase border-b border-neon-blue/30 pb-2 mb-3 neon-text-blue">Dispatched & Route-Optimized</div>
+          <div id="col-dispatched" class="flex-1 overflow-y-auto space-y-3 pr-1"></div>
+        </div>
+
+        <!-- Column 3 -->
+        <div class="flex flex-col h-full bg-black/40 rounded-lg border border-white/5 p-3">
+          <div class="text-[10px] font-mono text-neon-green uppercase border-b border-neon-green/30 pb-2 mb-3 neon-text">Resolved</div>
+          <div id="col-resolved" class="flex-1 overflow-y-auto space-y-3 pr-1"></div>
+        </div>
+
+      </div>
+    </div>
+  </main>
+
+  <!-- Modal -->
+  <div id="report-modal" class="fixed inset-0 z-[100] hidden items-center justify-center p-4">
+    <div class="absolute inset-0 bg-black/80 backdrop-blur-sm" id="modal-backdrop"></div>
+    <div class="glass relative z-10 w-full max-w-lg rounded-xl border border-white/20 p-6 shadow-2xl">
+      <h3 class="text-lg font-black uppercase text-white mb-4 border-b border-white/10 pb-3 flex items-center gap-2">
+        <svg class="w-5 h-5 text-neon-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+        Deploy New Report
+      </h3>
+      
+      <form id="report-form" class="space-y-4">
+        <div>
+          <label class="block text-[10px] font-mono text-gray-400 uppercase mb-1">Issue Title</label>
+          <input type="text" id="issue-title" required class="w-full bg-black/50 border border-white/20 rounded px-3 py-2 text-white focus:outline-none focus:border-neon-blue transition-colors text-sm" placeholder="e.g. Broken Traffic Light">
+        </div>
+        <div>
+          <label class="block text-[10px] font-mono text-gray-400 uppercase mb-1">Detailed Description</label>
+          <textarea id="issue-desc" required rows="3" class="w-full bg-black/50 border border-white/20 rounded px-3 py-2 text-white focus:outline-none focus:border-neon-blue transition-colors text-sm resize-none" placeholder="Describe the exact location and hazard..."></textarea>
+        </div>
+        <div>
+          <label class="block text-[10px] font-mono text-gray-400 uppercase mb-1">Category</label>
+          <select id="issue-category" class="w-full bg-black/50 border border-white/20 rounded px-3 py-2 text-white focus:outline-none focus:border-neon-blue transition-colors text-sm">
+            <option>Infrastructure</option>
+            <option>Public Safety</option>
+            <option>Sanitation</option>
+            <option>Electrical</option>
+            <option>Water & Sewage</option>
+          </select>
+        </div>
+        <div class="pt-4 flex justify-end gap-3 border-t border-white/10 mt-4">
+          <button type="button" id="close-modal-btn" class="px-4 py-2 text-xs font-bold uppercase text-gray-400 hover:text-white transition-colors">Cancel</button>
+          <button type="submit" id="submit-btn" class="bg-neon-blue/10 border border-neon-blue text-neon-blue px-6 py-2 rounded text-xs font-bold uppercase shadow-[0_0_10px_#0ff] hover:bg-neon-blue/20 transition-all flex items-center gap-2">
+            Initialize Agents
+          </button>
+        </div>
+      </form>
+
+      <!-- Processing State -->
+      <div id="processing-state" class="hidden flex-col items-center justify-center py-10">
+        <div class="relative w-16 h-16 mb-4">
+          <div class="absolute inset-0 border-4 border-white/10 border-t-neon-blue rounded-full animate-spin"></div>
+          <div class="absolute inset-2 border-4 border-white/10 border-b-neon-green rounded-full animate-spin" style="animation-direction: reverse; animation-duration: 1.5s;"></div>
+        </div>
+        <div class="text-sm font-mono text-neon-blue uppercase animate-pulse text-center neon-text-blue">
+          Multi-Agent Negotiation<br>in Progress...
+        </div>
+        <div class="text-[10px] text-gray-500 font-mono mt-2">Connecting to Dispatch Node</div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="/main.js"></script>
+</body>
+</html>

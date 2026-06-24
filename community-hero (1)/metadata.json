@@ -1,0 +1,6 @@
+{
+  "name": "Community Hero",
+  "description": "A stunning, full-stack civic reporting web application where citizens can report local issues, see a simulated multi-agent AI backend process, validate, prioritize, and dispatch work orders, and earn points for active civic participation.",
+  "requestFramePermissions": ["geolocation"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
